@@ -118,11 +118,11 @@ scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
 # 5. Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.8, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.8, random_state=10)
 
 # 6. Train model
 model = RandomForestClassifier(n_estimators=100, random_state=42)
-# model = SVC(kernel='linear', probability=True)
+model = SVC(kernel='linear', probability=True)
 model.fit(X_train, y_train)
 
 # 7. Evaluation
