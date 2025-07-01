@@ -19,61 +19,6 @@ from tracking import log_metrics, plot_f1_scores, save_conf_matrix
 
 file_path = "data/gtzan/genres"
 # 1. Feature extractor
-# def extract_features(file_path):
-#     try:
-#         audio, sr = librosa.load(file_path, duration=30)
-#         mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=13)
-#         mfccs_mean = np.mean(mfccs.T, axis=0)
-
-#         chroma = librosa.feature.chroma_stft(y=audio, sr=sr)
-#         chroma_mean = np.mean(chroma.T, axis=0)
-
-#         zcr = librosa.feature.zero_crossing_rate(audio)
-#         zcr_mean = np.mean(zcr)
-
-#         tempo, _ = librosa.beat.beat_track(y=audio, sr=sr)
-#         spectral_centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)
-#         spectral_rolloff = librosa.feature.spectral_rolloff(y=audio, sr=sr)
-#         spectral_bandwidth = librosa.feature.spectral_bandwidth(y=audio, sr=sr)
-#         rmse = librosa.feature.rms(y=audio)
-#         contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
-
-#         return np.hstack((mfccs_mean, chroma_mean, zcr_mean, tempo, spectral_centroid, spectral_rolloff, spectral_bandwidth, rmse, contrast))
-#     except Exception as e:
-#         print(f"❌ Error processing {file_path}: {e}")
-#         return None
-
-# # 2. Dataset creator
-# def create_dataset(directory):
-#     genres = os.listdir(directory)
-#     print(f"\n✅ Found genres: {genres}\n")
-
-#     data = []
-#     labels = []
-
-#     for genre in genres:
-#         genre_path = os.path.join(directory, genre)
-#         if not os.path.isdir(genre_path):
-#             print(f"⚠️ Skipping non-directory: {genre_path}")
-#             continue
-
-#         print(f"🎵 Processing genre: {genre}")
-#         for file in os.listdir(genre_path):
-#             if file.endswith(('.wav', '.au')):
-#                 file_path = os.path.join(genre_path, file)
-#                 print(f"   ▶ Extracting from: {file_path}")
-
-#                 features = extract_features(file_path)
-#                 if features is not None:
-#                     data.append(features)
-#                     labels.append(genre)
-#                 else:
-#                     print(f"   ❌ Failed to extract: {file_path}")
-#             else:
-#                 print(f"   ⏩ Skipping non-audio file: {file}")
-    
-#     print(f"\n📊 Total processed files: {len(data)}")
-#     return np.array(data), np.array(labels)
 
 def extract_features(file_path):
     try:
@@ -176,15 +121,15 @@ X_scaled = scaler.fit_transform(X)
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.8, random_state=42)
 
 # 6. Train model
-# model = RandomForestClassifier(n_estimators=100, random_state=42)
-model = SVC(kernel='linear', probability=True)
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+# model = SVC(kernel='linear', probability=True)
 model.fit(X_train, y_train)
 
 # 7. Evaluation
 y_pred = model.predict(X_test)
 
 # Track metrics
-precisions, recalls, f1s, supports = log_metrics(y_test, y_pred, label_encoder, model_name="SVC")
+precisions, recalls, f1s, supports = log_metrics(y_test, y_pred, label_encoder, model_name="RandomForestClassifier")
 
 # Plot and save visualizations
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
