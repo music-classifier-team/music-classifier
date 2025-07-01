@@ -44,6 +44,8 @@ data/gtzan/genres/
 
 # Model and scaler files
 *.pkl
+*.h5
+*.keras
 
 # Results and figures
 results/

@@ -8,7 +8,11 @@ from datetime import datetime
 from sklearn.metrics import precision_recall_fscore_support, f1_score, confusion_matrix
 
 def log_metrics(y_test, y_pred, label_encoder, model_name="Model", log_file="model_scores.csv"):
-    precisions, recalls, f1s, supports = precision_recall_fscore_support(y_test, y_pred)
+    # precisions, recalls, f1s, supports = precision_recall_fscore_support(y_test, y_pred)
+    precisions, recalls, f1s, supports = precision_recall_fscore_support(
+    y_test, y_pred, labels=range(len(label_encoder.classes_)), zero_division=0
+)
+
     accuracy = np.mean(y_test == y_pred)
     macro_f1 = np.mean(f1s)
     weighted_f1 = f1_score(y_test, y_pred, average="weighted")
