@@ -14,6 +14,10 @@ from keras.layers import RandomContrast, RandomZoom, RandomRotation
 from keras.optimizers import Adam
 from sklearn.preprocessing import LabelEncoder
 from tracking import log_metrics, plot_f1_scores, save_conf_matrix
+from keras.callbacks import ReduceLROnPlateau
+
+
+
 
 AUDIO_DIR = 'data/gtzan/genres'
 OUTPUT_DIR = 'gtzan_spectrograms'
@@ -32,38 +36,38 @@ FILES_PER_GENRE = 100
 
 
 # def create_spectrogram(audio_path, output_path):
-#     try:
-#         y, sr = librosa.load(audio_path, duration=29.5)
-#         S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
-#         S_DB = librosa.power_to_db(S, ref=np.max)
+    # try:
+    #     y, sr = librosa.load(audio_path, duration=29.5)
+    #     S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
+    #     S_DB = librosa.power_to_db(S, ref=np.max)
 
-#         fig = plt.figure(figsize=(1.28, 1.28), dpi=100)
-#         plt.axis('off')
-#         librosa.display.specshow(S_DB, sr=sr, cmap='gray')
-#         plt.tight_layout(pad=0)
-#         plt.savefig(output_path, bbox_inches='tight', pad_inches=0)
-#         plt.close(fig)
-#         print(f"✅ Saved spectrogram: {output_path}")
-#     except Exception as e:
-#         print(e)
+    #     fig = plt.figure(figsize=(1.28, 1.28), dpi=100)
+    #     plt.axis('off')
+    #     librosa.display.specshow(S_DB, sr=sr, cmap='gray')
+    #     plt.tight_layout(pad=0)
+    #     plt.savefig(output_path, bbox_inches='tight', pad_inches=0)
+    #     plt.close(fig)
+    #     print(f"✅ Saved spectrogram: {output_path}")
+    # except Exception as e:
+    #     print(e)
 
 
 # for genre in os.listdir(AUDIO_DIR):
-#     genre_path = os.path.join(AUDIO_DIR, genre)
-#     output_genre_path = os.path.join(OUTPUT_DIR, genre)
-#     os.makedirs(output_genre_path, exist_ok=True)
+    # genre_path = os.path.join(AUDIO_DIR, genre)
+    # output_genre_path = os.path.join(OUTPUT_DIR, genre)
+    # os.makedirs(output_genre_path, exist_ok=True)
 
-#      # Get all .wav files in this genre folder, sort and pick top N
-#     wav_files = [f for f in os.listdir(genre_path) if f.endswith('.au')]
-#     selected_files = sorted(wav_files)[:FILES_PER_GENRE]
+    #  # Get all .wav files in this genre folder, sort and pick top N
+    # wav_files = [f for f in os.listdir(genre_path) if f.endswith('.au')]
+    # selected_files = sorted(wav_files)[:FILES_PER_GENRE]
 
-#     for filename in tqdm(selected_files, desc=f"Processing {genre}"):
-#         audio_path = os.path.join(genre_path, filename)
-#         output_image_path = os.path.join(output_genre_path, filename.replace('.au', '.png'))
-#         print(output_image_path)
+    # for filename in tqdm(selected_files, desc=f"Processing {genre}"):
+    #     audio_path = os.path.join(genre_path, filename)
+    #     output_image_path = os.path.join(output_genre_path, filename.replace('.au', '.png'))
+    #     print(output_image_path)
 
-#         if not os.path.exists(output_image_path):
-#             create_spectrogram( audio_path, output_image_path)
+    #     if not os.path.exists(output_image_path):
+    #         create_spectrogram( audio_path, output_image_path)
     
 
 
@@ -71,7 +75,7 @@ FILES_PER_GENRE = 100
 DATASET_DIR = OUTPUT_DIR
 IMG_SIZE = (128, 128)
 BATCH_SIZE = 32
-EPOCHS = 50
+EPOCHS = 80
 SEED = 42
 
 # === Load dataset (grayscale) ===
@@ -104,6 +108,8 @@ normalization_layer = layers.Rescaling(1./255)
 
 train_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
 # train_ds = train_ds.map(lambda x, y: (data_augmentation(x, training=True), y))
+
+# train_ds = train_ds.map(lambda x, y: (data_augmentation(x, training=True), y))
 val_ds = val_ds.map(lambda x, y: (normalization_layer(x), y))
 
 # === Optimize performance ===
@@ -114,101 +120,75 @@ val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
 
 # === Build CNN ===
+# model = models.Sequential([
+#     # layers.InputLayer(input_shape=(128, 128, 1)),  # grayscale = 1 channel
+#     layers.Input(shape=(128, 128, 1)),
+
+#     layers.Conv2D(32, (3, 3), activation='relu'),
+#     layers.MaxPooling2D(2, 2),
+
+#     layers.Conv2D(64, (3, 3), activation='relu'),
+#     layers.MaxPooling2D(2, 2),
+
+#     layers.Conv2D(128, (3, 3), activation='relu'),
+#     layers.MaxPooling2D(2, 2),
+
+#     layers.Flatten(),
+#     layers.Dense(128, activation='relu'),
+#     layers.Dropout(0.3),
+#     layers.Dense(num_classes, activation='softmax')
+# ])
+
+
+
 model = models.Sequential([
-    # layers.InputLayer(input_shape=(128, 128, 1)),  # grayscale = 1 channel
-    layers.Input(shape=(128, 128, 1)),
+    layers.InputLayer(shape=(128, 128, 1)),
 
-    layers.Conv2D(32, (3, 3), activation='relu'),
+    # data_augmentation,  # Apply augmentation
+
+    layers.Conv2D(32, (3, 3), activation='relu', padding='same'),
     layers.MaxPooling2D(2, 2),
 
-    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.Conv2D(64, (3, 3), activation='relu', padding='same'),
     layers.MaxPooling2D(2, 2),
 
-    layers.Conv2D(128, (3, 3), activation='relu'),
+    layers.Conv2D(128, (3, 3), activation='relu', padding='same'),
+    layers.MaxPooling2D(2, 2),
+
+    layers.Conv2D(256, (3, 3), activation='relu', padding='same'),
     layers.MaxPooling2D(2, 2),
 
     layers.Flatten(),
-    layers.Dense(128, activation='relu'),
+    layers.Dense(256, activation='relu'),
     layers.Dropout(0.3),
     layers.Dense(num_classes, activation='softmax')
 ])
 
+# reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=4, min_lr=1e-6)
 model.compile(
-    optimizer='adam',
+    optimizer=Adam(learning_rate=1e-4),
     loss='sparse_categorical_crossentropy',
     metrics=['accuracy']
 )
-# model = models.Sequential([
-#     layers.Input(shape=(128, 128, 1)),
 
-#     layers.Conv2D(32, 3, activation='relu', padding='same'),
-#     layers.BatchNormalization(),
-#     layers.MaxPooling2D(2),
-
-#     layers.Conv2D(64, 3, activation='relu', padding='same'),
-#     layers.BatchNormalization(),
-#     layers.MaxPooling2D(2),
-
-#     layers.Conv2D(128, 3, activation='relu', padding='same'),
-#     layers.BatchNormalization(),
-#     layers.MaxPooling2D(2),
-
-#     layers.Flatten(),
-#     layers.Dense(128, activation='relu'),
-#     layers.Dropout(0.5),
-#     layers.Dense(num_classes, activation='softmax'),
-# ])
-# model = models.Sequential([
-#     layers.InputLayer(shape=(128, 128, 1)),
-
-#     # data_augmentation,  # Apply augmentation
-
-#     layers.Conv2D(32, (3, 3), activation='relu', padding='same'),
-#     layers.BatchNormalization(),
-#     layers.MaxPooling2D(2, 2),
-
-#     layers.Conv2D(64, (3, 3), activation='relu', padding='same'),
-#     layers.BatchNormalization(),
-#     layers.MaxPooling2D(2, 2),
-
-#     layers.Conv2D(128, (3, 3), activation='relu', padding='same'),
-#     layers.BatchNormalization(),
-#     layers.MaxPooling2D(2, 2),
-
-#     layers.Conv2D(256, (3, 3), activation='relu', padding='same'),
-#     layers.BatchNormalization(),
-#     layers.MaxPooling2D(2, 2),
-
-#     layers.Flatten(),
-#     layers.Dense(256, activation='relu'),
-#     layers.Dropout(0.5),
-#     layers.Dense(num_classes, activation='softmax')
-# ])
-
-# model.compile(
-#     optimizer=Adam(learning_rate=0.00001),
-#     loss='sparse_categorical_crossentropy',
-#     metrics=['accuracy']
-# )
-
-# callbacks = [
-#     EarlyStopping(patience=10, restore_best_weights=True),
-#     ModelCheckpoint("best_cnn_model.h5", save_best_only=True)
-# ]
+callbacks = [
+    EarlyStopping(patience=10, restore_best_weights=True),
+    ModelCheckpoint("best_cnn_model.h5", save_best_only=True)
+]
 
 
 # === Train the model ===
-history = model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=EPOCHS
-)
 # history = model.fit(
 #     train_ds,
 #     validation_data=val_ds,
-#     epochs=EPOCHS,
-#     callbacks=callbacks
+#     epochs=EPOCHS
 # )
+history = model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=EPOCHS,
+    callbacks=callbacks
+)
 
 
 # === Evaluate ===

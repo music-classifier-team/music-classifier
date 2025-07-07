@@ -156,31 +156,6 @@ for name, model in models.items():
     print(f"\n🚀 Training {name}...")
     trained_model = train_and_evaluate(model, name)
 
-# # 7. Evaluation
-# y_pred = model.predict(X_test)
-
-# # Track metrics
-# precisions, recalls, f1s, supports = log_metrics(y_test, y_pred, label_encoder, model_name="RandomForestClassifier")
-
-# # Plot and save visualizations
-# timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-# # os.makedirs("results", exist_ok=True)
-# confusion_path = f"results/confusion_matrix_{timestamp}.png"
-# f1_path = f"results/f1_scores_{timestamp}.png"
-# plot_f1_scores(label_encoder, f1s, save_path=f1_path)
-# save_conf_matrix(y_test, y_pred, label_encoder, save_path=confusion_path)
-
-# print("📝 Classification Report:\n")
-# print(classification_report(y_test, y_pred, target_names=label_encoder.classes_))
-
-# conf_matrix = confusion_matrix(y_test, y_pred)
-# plt.figure(figsize=(10, 8))
-# sns.heatmap(conf_matrix, annot=True, xticklabels=label_encoder.classes_, yticklabels=label_encoder.classes_, cmap='Blues')
-# plt.title("🎯 Confusion Matrix")
-# plt.xlabel("Predicted")
-# plt.ylabel("Actual")
-# plt.tight_layout()
-# plt.show()
 
 # 8. Save model and scalers
 joblib.dump(trained_model, "rf_model.pkl")
