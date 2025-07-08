@@ -52,26 +52,18 @@ def extract_features(file_path):
 
         contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
         contrast_mean = np.mean(contrast, axis=1)  # Shape: (n_bands,)
-        # print(f"MFCCs shape: {mfccs_mean.shape}")
-        # print(f"Chroma shape: {chroma_mean.shape}")
-        # print(f"ZCR shape: {np.array([zcr_mean]).shape}")
-        # print(f"Tempo shape: {np.array([tempo]).shape}")
-        # print(f"Spectral centroid shape: {spectral_centroid_mean.shape}")
-        # print(f"Spectral rolloff shape: {spectral_rolloff_mean.shape}")
-        # print(f"Spectral bandwidth shape: {spectral_bandwidth_mean.shape}")
-        # print(f"RMSE shape: {rmse_mean.shape}")
-        # print(f"Contrast shape: {contrast_mean.shape}")
         
+    
         return np.hstack((
-            mfccs_mean,                # 1D: (n_mfcc,)
-            chroma_mean,               # 1D: (n_chroma,)
-            np.array([zcr_mean]),      # 1D: (1,)
-            np.array([tempo]),         # 1D: (1,)
-            spectral_centroid_mean,    # 1D: (1,)
-            spectral_rolloff_mean,     # 1D: (1,)
-            spectral_bandwidth_mean,   # 1D: (1,)
-            rmse_mean,                 # 1D: (1,)
-            contrast_mean              # 1D: (n_bands,)
+            mfccs_mean,                
+            chroma_mean,               
+            np.array([zcr_mean]),      
+            np.array([tempo]),         
+            spectral_centroid_mean,    
+            spectral_rolloff_mean,     
+            spectral_bandwidth_mean,   
+            rmse_mean,                 
+            contrast_mean              
         ))
     except Exception as e:
         print(f"❌ Error processing {file_path}: {e}")

@@ -13,6 +13,7 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import RandomContrast, RandomZoom, RandomRotation
 from keras.optimizers import Adam
 from sklearn.preprocessing import LabelEncoder
+from sklearn.utils import class_weight
 from tracking import log_metrics, plot_f1_scores, save_conf_matrix
 from keras.callbacks import ReduceLROnPlateau
 
@@ -117,29 +118,19 @@ AUTOTUNE = tf.data.AUTOTUNE
 train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
+# === Compute Class Weights ===
+y_all = []
+for _, labels in train_ds.unbatch():
+    y_all.append(labels.numpy())
 
+class_weights = class_weight.compute_class_weight(
+    class_weight='balanced',
+    classes=np.unique(y_all),
+    y=y_all
+)
+class_weights = dict(enumerate(class_weights))
 
-# === Build CNN ===
-# model = models.Sequential([
-#     # layers.InputLayer(input_shape=(128, 128, 1)),  # grayscale = 1 channel
-#     layers.Input(shape=(128, 128, 1)),
-
-#     layers.Conv2D(32, (3, 3), activation='relu'),
-#     layers.MaxPooling2D(2, 2),
-
-#     layers.Conv2D(64, (3, 3), activation='relu'),
-#     layers.MaxPooling2D(2, 2),
-
-#     layers.Conv2D(128, (3, 3), activation='relu'),
-#     layers.MaxPooling2D(2, 2),
-
-#     layers.Flatten(),
-#     layers.Dense(128, activation='relu'),
-#     layers.Dropout(0.3),
-#     layers.Dense(num_classes, activation='softmax')
-# ])
-
-
+# Build CNN 
 
 model = models.Sequential([
     layers.InputLayer(shape=(128, 128, 1)),
@@ -157,6 +148,7 @@ model = models.Sequential([
 
     layers.Conv2D(256, (3, 3), activation='relu', padding='same'),
     layers.MaxPooling2D(2, 2),
+
 
     layers.Flatten(),
     layers.Dense(256, activation='relu'),
@@ -183,15 +175,20 @@ callbacks = [
 #     validation_data=val_ds,
 #     epochs=EPOCHS
 # )
+
+# Flatten all training labels
+
+
 history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=EPOCHS,
+    class_weight=class_weights,
     callbacks=callbacks
 )
 
 
-# === Evaluate ===
+#  Evaluate 
 y_true, y_pred = [], []
 for images, labels in val_ds:
     preds = model.predict(images)
@@ -201,11 +198,11 @@ for images, labels in val_ds:
 y_true = np.array(y_true)
 y_pred = np.array(y_pred)
 
-# === Label encoder for reports ===
+#  Label encoder for reports 
 label_encoder = LabelEncoder()
 label_encoder.fit(class_names)
 
-# === Log and visualize ===
+#  Log and visualize 
 precisions, recalls, f1s, supports = log_metrics(
     y_true, y_pred,
     label_encoder=label_encoder,
@@ -220,7 +217,7 @@ f1_path = f"cnn_results/f1_scores{timestamp}.png"
 plot_f1_scores(label_encoder, f1s, save_path=f1_path)
 save_conf_matrix(y_true, y_pred, label_encoder, save_path=confusion_path)
 
-# === Save model ===
+#  Save model 
 # model.save("clean_cnn_model.h5")
 model.save("clean_cnn_model.keras")
 print("✅ Clean CNN model saved as clean_cnn_model.keras")
