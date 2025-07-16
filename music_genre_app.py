@@ -9,6 +9,8 @@ from PIL import Image
 import os
 import tempfile
 import io
+from keras.applications.vgg16 import preprocess_input
+
 
 # Constants
 IMG_SIZE = (128, 128)
@@ -20,7 +22,7 @@ class_names = [
 # Load Model (Cached)
 @st.cache_resource
 def load_trained_model():
-    return load_model("clean_cnn_model.keras")
+    return load_model("transfer_vgg16_model.keras")
 
 model = load_trained_model()
 
@@ -33,20 +35,24 @@ def audio_to_spectrogram_image(audio_path):
     # Save spectrogram as image
     fig = plt.figure(figsize=(1.28, 1.28), dpi=100)
     plt.axis('off')
-    librosa.display.specshow(S_DB, sr=sr, cmap='gray')
+    librosa.display.specshow(S_DB, sr=sr, cmap='viridis')  # or any colorful cmap
     plt.tight_layout(pad=0)
 
     temp_img = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
     plt.savefig(temp_img.name, bbox_inches='tight', pad_inches=0)
     plt.close(fig)
 
-    # Load image and prepare for prediction
-    img = Image.open(temp_img.name).convert("L")
+  
+
+    img = Image.open(temp_img.name).convert("RGB")
     img = img.resize(IMG_SIZE)
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=(0, -1))
+    img_array = np.array(img)
+    img_array = preprocess_input(img_array)  #  Apply VGG16-style preprocessing
+    img_array = np.expand_dims(img_array, axis=0)
+
 
     return img_array, temp_img.name
+
 
 # Plot All Genre Confidences
 def plot_confidences(prediction):
@@ -85,9 +91,7 @@ uploaded_file = st.file_uploader("🎧 Upload Audio File", type=["wav", "au", "m
 if uploaded_file:
     file_bytes = uploaded_file.read()
     st.audio(file_bytes, format="audio/wav" if uploaded_file.name.endswith(".wav") else "audio/mp3")
-    # playable_audio_path = convert_audio_to_wav(uploaded_file)
-    # with open(playable_audio_path, 'rb') as f:
-    #     st.audio(f.read(), format="audio/wav")
+    
 
 
     # Save to temporary file for Librosa
@@ -102,6 +106,7 @@ if uploaded_file:
             predicted_index = np.argmax(prediction)
             predicted_class = class_names[predicted_index]
             confidence = prediction[0][predicted_index]
+            
 
             # Display prediction
             st.subheader("📌 Prediction Result")

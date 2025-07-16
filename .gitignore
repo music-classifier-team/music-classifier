@@ -42,12 +42,17 @@ data/
 data/gtzan/
 data/gtzan/genres/
 
+# the generated spectograms
+gtzan_spectrograms/
+augmented_audio/
+
 # Model and scaler files
 *.pkl
 *.h5
 *.keras
 
 # Results and figures
+cnn_results/
 results/
 *.png
 
